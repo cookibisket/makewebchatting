@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+	<title>Mobile Chat</title>
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<style>
+		#chatpage [data-role=header] {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+		}
+		#chatpage [data-role=content] {
+			position: absolute;
+			top: 50px;
+			bottom: 0;
+			width: 100%;
+			box-sizing: border-box;
+		}
+		#chatpage .msg_wrap {
+			position: absolute;
+			top: 0;
+			left: 20px;
+			right: 20px;
+			bottom: 110px;
+			overflow-y: scroll;
+		}
+		#chatpage [data-role=listview] {
+			position: relative;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			box-shadow: none;
+		}
+		#chatpage [data-role=listview] li {
+			-webkit-box-shadow: 0 1px 3px rgba(0,0,0,.15);
+			-moz-box-shadow: 0 1px 3px rgba(0,0,0,.15);
+			box-shadow: 0 1px 3px rgba(0,0,0,.15);
+		}
+		#chatpage [data-role=listview] li + li {
+			margin-top: 15px;
+		}
+		#chatpage [data-role=listview] li h3 {
+			font-size: 0.8em;
+		}
+		.input_wrap {
+			position: fixed;
+			bottom: 0;
+			left: 20px;
+			right: 20px;
+		}
+	</style>
+</head>
+<body>
+<div data-role="page">
+	<div data-role="header">
+		<h1>채팅방입니다.</h1>
+	</div>
+	<div data-role="content">
+		<h3>Nick Name</h3>
+		<input type="text" id="name" placeholder="닉네임을 입력해주세요">
+		<a data-role="button" href="#chatpage">채팅 시작하기</a>
+	</div>
+</div>
+
+<div data-role="page" id="chatpage">
+	<div data-role="header">
+		<h1>채팅방입니다.</h1>
+	</div>
+	<div data-role="content">
+		<div class="msg_wrap">
+			<ul id="content" data-role="listview" data-inset="true">
+
+			</ul>
+		</div>
+		<div class="input_wrap">
+			<input type="text" id="message">
+			<button>전송</button>
+		</div>
+	</div>
+</div>
+
+<script>
+	var socket = io.connect();
+
+	socket.on('message', function (data) {
+		console.log(data);
+		// 서버에서 넘어온 데이터를 화면에 출력하자
+		var output = '';
+		output += '<li>';
+		output += '    <h3>' + data.name + '</h3>';
+		output += '    <p>' + data.message + '</p>';
+		output += '    <p>' + data.date + '</p>';
+		output += '</li>';
+
+		$(output).prependTo('#content');
+		$('#content').listview('refresh');// jQueryMobile 형태의 list로 렌더링
+
+		$('#message').val('');
+
+	});
+
+	$('button').click(function () {
+		// 데이터를 담아서 서버로 보내자
+		socket.emit('message', {
+			name: $('#name').val(),
+			message: $('#message').val(),
+			date: new Date().toUTCString()
+		});
+	});
+	$('#message').keydown(function (key) {
+		if(key.which == 13 && $('#message').val() != '') {
+			socket.emit('message', {
+				name: $('#name').val(),
+				message: $('#message').val(),
+				date: new Date().toUTCString()
+			});
+		}
+	});
+</script>
+</body>
+</html>
