@@ -7,16 +7,19 @@ const http = require('http');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo.listen(server);
+const io = socketIo();
 
 // 소켓서버를 웹서버에 연결합니다
 io.attach(server);
 
 app.use(express.static(`${__dirname}/public`));
 
-
 io.sockets.on('connection', (socket) => {
+	socket.on('setId', (data) => {
+		io.sockets.emit('setId', data);
+	});
 	socket.on('message', (data) => {
+		console.log(data);
 		io.sockets.emit('message', data);
 	});
 });

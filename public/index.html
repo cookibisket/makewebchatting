@@ -9,11 +9,35 @@
 	<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
 	<script src="/socket.io/socket.io.js"></script>
 	<style>
-		#chatpage [data-role=header] {
+		input, a, button {
+			box-shadow: none !important;
+		}
+		[data-role=page].ui-page {
+			overflow: hidden;
+			height: 100%;
+		}
+		[data-role=header].ui-header {
 			position: absolute;
 			top: 0;
 			left: 0;
 			width: 100%;
+			background-color: #2d3649;
+			color: rgba(255, 255, 255, 0.9);
+			font-size: 0.8em;
+			line-height: 2.5;
+			text-shadow: none;
+		}
+		[data-role=content] {
+			height: 100%;
+			box-sizing: border-box;
+		}
+		.intro [data-role=content] {
+			padding-top: 62%;
+		}
+		[data-role=content] h3 {
+			margin-bottom: 8px;
+			font-size: 0.85em;
+			text-align: center;
 		}
 		#chatpage [data-role=content] {
 			position: absolute;
@@ -27,8 +51,14 @@
 			top: 0;
 			left: 20px;
 			right: 20px;
-			bottom: 110px;
+			bottom: 100px;
 			overflow-y: scroll;
+		}
+		#chatpage .msg_inner {
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			right: 0;
 		}
 		#chatpage [data-role=listview] {
 			position: relative;
@@ -37,34 +67,90 @@
 			bottom: 0;
 			box-shadow: none;
 		}
+		#chatpage [data-role=listview]:before, #chatpage [data-role=listview]:after {
+			content: '';
+			display: table;
+			clear: both;
+		}
 		#chatpage [data-role=listview] li {
+			position: relative;
+			overflow: visible;
+			float: left;
+			clear: both;
+			padding: .2em 1em;
+			border-radius: 30px 30px 30px 0;
 			-webkit-box-shadow: 0 1px 3px rgba(0,0,0,.15);
 			-moz-box-shadow: 0 1px 3px rgba(0,0,0,.15);
 			box-shadow: 0 1px 3px rgba(0,0,0,.15);
 		}
+		#chatpage [data-role=listview] li.me {
+			float: right;
+			border-radius: 30px 30px 0 30px;
+			background-color: #fbdf50;
+			text-shadow: none;
+		}
 		#chatpage [data-role=listview] li + li {
-			margin-top: 15px;
+			max-width: 75%;
+			margin-top: 27px;
+			box-sizing: border-box;
 		}
 		#chatpage [data-role=listview] li h3 {
-			font-size: 0.8em;
+			position: absolute;
+			top: -23px;
+			left: 0;
+			font-size: 0.7em;
+		}
+		#chatpage [data-role=listview] li .time {
+			position: absolute;
+			right: -68px;
+			top: 50%;
+			margin-top: -5px;
+			font-size: 11px;
+			color: #999;
 		}
 		.input_wrap {
 			position: fixed;
 			bottom: 0;
 			left: 20px;
 			right: 20px;
+			padding-right: 20%;
+		}
+		.ui-input-text {
+			float: left;
+			width: 100%;
+		}
+		.ui-input-text input {
+			line-height: 2;
+			font-size: 0.75em;
+		}
+		.ui-input-text input::-webkit-input-placeholder {
+			color: #eaeaea;
+			text-shadow: none;
+		}
+		.ui-page-theme-a .ui-btn {
+			font-size: 0.8em;
+			background-color: #fbdf50 !important;
+			text-shadow: none;
+		}
+		.ui-page-theme-a button.ui-btn {
+			position: absolute;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			width: 20%;
+			font-size: 0.7em;
 		}
 	</style>
 </head>
 <body>
-<div data-role="page">
+<div data-role="page" class="intro">
 	<div data-role="header">
-		<h1>채팅방입니다.</h1>
+		<h1>Web Chatting Room</h1>
 	</div>
 	<div data-role="content">
-		<h3>Nick Name</h3>
+		<h3>Please Input Your Nick Name</h3>
 		<input type="text" id="name" placeholder="닉네임을 입력해주세요">
-		<a data-role="button" href="#chatpage">채팅 시작하기</a>
+		<a data-role="button" href="#chatpage" id="submitId">채팅 시작하기</a>
 	</div>
 </div>
 
@@ -74,9 +160,11 @@
 	</div>
 	<div data-role="content">
 		<div class="msg_wrap">
-			<ul id="content" data-role="listview" data-inset="true">
+			<div class="msg_inner">
+				<ul id="content" data-role="listview" data-inset="true">
 
-			</ul>
+				</ul>
+			</div>
 		</div>
 		<div class="input_wrap">
 			<input type="text" id="message">
@@ -87,41 +175,67 @@
 
 <script>
 	var socket = io.connect();
+	var myId = '';
 
-	socket.on('message', function (data) {
-		console.log(data);
-		// 서버에서 넘어온 데이터를 화면에 출력하자
-		var output = '';
-		output += '<li>';
-		output += '    <h3>' + data.name + '</h3>';
-		output += '    <p>' + data.message + '</p>';
-		output += '    <p>' + data.date + '</p>';
-		output += '</li>';
-
-		$(output).prependTo('#content');
-		$('#content').listview('refresh');// jQueryMobile 형태의 list로 렌더링
-
-		$('#message').val('');
-
+	// 데이터를 담아서 서버로 보내자
+	$('#submitId').click(function () {
+		socket.emit('setId', {
+			name: $('#name').val()
+		});
 	});
 
 	$('button').click(function () {
-		// 데이터를 담아서 서버로 보내자
-		socket.emit('message', {
-			name: $('#name').val(),
-			message: $('#message').val(),
-			date: new Date().toUTCString()
-		});
+		if($('#message').val() != '') {
+			socket.emit('message', {
+				name: $('#name').val(),
+				message: $('#message').val(),
+				date: new Date().toLocaleTimeString()
+			});
+		}
 	});
 	$('#message').keydown(function (key) {
 		if(key.which == 13 && $('#message').val() != '') {
 			socket.emit('message', {
 				name: $('#name').val(),
 				message: $('#message').val(),
-				date: new Date().toUTCString()
+				date: new Date().toLocaleTimeString(),
+				key: myId.key
 			});
 		}
 	});
+
+	// 서버에서 넘어온 네임값을 변수에 담자
+	socket.on('setId', function (data) {
+		myId = data;
+		console.log('네임이 등록됨. data.name : ', data.name, ', myId.name : ', myId.name);
+	});
+
+	// 서버에서 넘어온 데이터를 화면에 출력하자
+	socket.on('message', function (data) {
+		var output = '';
+		console.log('메세지 출력할때. data.name : ', data.name, ', myId.name : ', myId.name);
+
+		if(myId.name == data.name) {
+			output += '<li class="me">';
+			output += '    <h3>' + data.name + '</h3>';
+			output += '    <p>' + data.message + '</p>';
+			output += '    <p class="time">' + data.date + '</p>';
+			output += '</li>';
+		} else {
+			output += '<li>';
+			output += '    <h3>' + data.name + '</h3>';
+			output += '    <p>' + data.message + '</p>';
+			output += '    <p class="time">' + data.date + '</p>';
+			output += '</li>';
+		}
+
+		$('#content').append(output);
+		$('#content').listview('refresh');// jQueryMobile 형태의 list로 렌더링
+
+		$('#message').val('');
+
+	});
+
 </script>
 </body>
 </html>
