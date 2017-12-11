@@ -53,11 +53,17 @@
 		}
 		#chatpage .msg_wrap {
 			position: absolute;
-			top: 20px;
+			top: 0;
 			left: 20px;
 			right: 20px;
 			bottom: 100px;
 			overflow-y: scroll;
+		}
+		#chatpage .msg_inner {
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			right: 0;
 		}
 		#chatpage [data-role=listview] {
 			position: relative;
@@ -165,9 +171,11 @@
 	</div>
 	<div data-role="content">
 		<div class="msg_wrap">
-			<ul id="content" data-role="listview" data-inset="true">
+			<div class="msg_inner">
+				<ul id="content" data-role="listview" data-inset="true">
 
-			</ul>
+				</ul>
+			</div>
 		</div>
 		<div class="input_wrap">
 			<input type="text" id="message" tabindex="1">
@@ -178,9 +186,19 @@
 
 <script>
 	var socket = io.connect();
+	var myId = [];
 
+	// 데이터를 담아서 서버로 보내자
+	$('#submitId').click(function () {
+		socket.emit('setId', {
+			name: $('#name').val()
+		});
+	});
 	$('#name').keydown(function (key) {
 		if(key.which == 13 && $(this).val() != '') {
+			socket.emit('setId', {
+				name: $('#name').val()
+			});
 			$('#submitId').trigger('click');
 		}
 	});
@@ -204,15 +222,18 @@
 		}
 	});
 
+	// 서버에서 넘어온 네임값을 변수에 담자
+	socket.on('setId', function (data) {
+		myId.push(data);
+		console.log('네임이 등록됨. data.name : ', data.name, ', myId : ', myId);
+	});
 
 	// 서버에서 넘어온 데이터를 화면에 출력하자
 	socket.on('message', function (data) {
 		var output = '';
-		var sessionUserId = data.name;
-		var currentUserId = $("#name").val();
-		console.log('sessionUserId : ' + sessionUserId + ', $("#name").val() : ' + $("#name").val());
+		console.log('메세지 출력할때. data.name : ', data.name, ', myId.name : ', myId.name);
 
-		if(sessionUserId == currentUserId) {
+		if(myId.name == data.name) {
 			output += '<li class="me">';
 			output += '    <h3>' + data.name + '</h3>';
 			output += '    <p>' + data.message + '</p>';
@@ -228,8 +249,9 @@
 
 		$('#content').append(output);
 		$('#content').listview('refresh', true);// jQueryMobile 형태의 list로 렌더링
+
 		$('#message').val('');
-		$('#chatpage .msg_wrap').scrollTop($('#chatpage .msg_wrap')[0].scrollHeight);
+
 	});
 </script>
 </body>
